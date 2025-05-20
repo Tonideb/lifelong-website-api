@@ -9,10 +9,10 @@ datasource db {
 generator client {
   provider = "prisma-client-js"
 }
-
-model Todo {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  text      String
-  completed Boolean
+model WaitlistEntry {
+  id           String   @id @default(uuid())
+  createdAt    DateTime @default(now())
+  email        String   @unique
+  waitListCode String
+  preferences  String[]
 }

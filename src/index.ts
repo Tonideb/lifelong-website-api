@@ -1,76 +1,90 @@
 import { PrismaClient } from "@prisma/client";
 import express from "express";
+const cors = require("cors");
 
 const prisma = new PrismaClient();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+app.use(
+  cors({
+    origin: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+app.options("*", cors());
 app.use(express.json());
 app.use(express.raw({ type: "application/vnd.custom-type" }));
 app.use(express.text({ type: "text/html" }));
 
-app.get("/todos", async (req, res) => {
-  const todos = await prisma.todo.findMany({
+// Waitlist Endpoints
+
+// Create new waitlist entry
+app.post("/waitlist", async (req, res) => {
+  const { email, waitListCode, preferences } = req.body;
+
+  try {
+    const entry = await prisma.waitlistEntry.create({
+      data: {
+        email,
+        waitListCode,
+        preferences,
+      },
+    });
+
+    return res.json(entry);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Failed to create waitlist entry" });
+  }
+});
+
+// Get all waitlist entries
+app.get("/waitlist", async (req, res) => {
+  const entries = await prisma.waitlistEntry.findMany({
     orderBy: { createdAt: "desc" },
   });
 
-  res.json(todos);
+  res.json(entries);
 });
 
-app.post("/todos", async (req, res) => {
-  const todo = await prisma.todo.create({
-    data: {
-      completed: false,
-      createdAt: new Date(),
-      text: req.body.text ?? "Empty todo",
-    },
-  });
-
-  return res.json(todo);
-});
-
-app.get("/todos/:id", async (req, res) => {
+// Get specific waitlist entry by ID
+app.get("/waitlist/:id", async (req, res) => {
   const id = req.params.id;
-  const todo = await prisma.todo.findUnique({
+  const entry = await prisma.waitlistEntry.findUnique({
     where: { id },
   });
 
-  return res.json(todo);
+  return res.json(entry);
 });
 
-app.put("/todos/:id", async (req, res) => {
+// Delete waitlist entry by ID
+app.delete("/waitlist/:id", async (req, res) => {
   const id = req.params.id;
-  const todo = await prisma.todo.update({
-    where: { id },
-    data: req.body,
-  });
-
-  return res.json(todo);
-});
-
-app.delete("/todos/:id", async (req, res) => {
-  const id = req.params.id;
-  await prisma.todo.delete({
+  await prisma.waitlistEntry.delete({
     where: { id },
   });
 
   return res.send({ status: "ok" });
 });
 
+// Home route with documentation
 app.get("/", async (req, res) => {
   res.send(
     `
-  <h1>Todo REST API</h1>
-  <h2>Available Routes</h2>
-  <pre>
-    GET, POST /todos
-    GET, PUT, DELETE /todos/:id
-  </pre>
-  `.trim(),
+    <h1>Marketplace API</h1>
+    <h2>Available Routes</h2>
+    <pre>
+      GET, POST /waitlist
+      GET, DELETE /waitlist/:id
+    </pre>
+    `.trim()
   );
 });
 
 app.listen(Number(port), "0.0.0.0", () => {
-    console.log(`Example app listening at http://localhost:${port}`);
+  console.log(`Marketplace API listening at http://localhost:${port}`);
 });
