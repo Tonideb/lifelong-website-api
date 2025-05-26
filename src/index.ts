@@ -12,8 +12,13 @@ if (!process.env.RESEND_API_KEY) {
 const prisma = new PrismaClient();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Test mode configuration
+const TEST_MODE = true; // Set this to false after domain verification
+const TEST_EMAIL = 'source.sensei@proton.me';
+
 // Log Resend initialization
 console.log("Resend initialized with API key:", process.env.RESEND_API_KEY.substring(0, 5) + "...");
+console.log("Running in", TEST_MODE ? "test mode" : "production mode");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -50,10 +55,13 @@ app.post("/waitlist", async (req, res) => {
     console.log("Successfully created waitlist entry:", entry);
 
     try {
-      // Send welcome email to the user
+      // In test mode, send all emails to the test email
+      const recipientEmail = TEST_MODE ? TEST_EMAIL : email;
+      
+      // Send welcome email
       const welcomeEmailResult = await resend.emails.send({
         from: 'onboarding@resend.dev',
-        to: email,
+        to: recipientEmail,
         subject: 'Welcome to Life Long Club Waitlist',
         html: `
           <div style="font-family: 'DM Mono', monospace; color: #fe240b;">
@@ -64,16 +72,17 @@ app.post("/waitlist", async (req, res) => {
             <br/>
             <p>Best regards,</p>
             <p>The Life Long Club Team</p>
+            ${TEST_MODE ? `<p style="color: gray;">Original recipient: ${email}</p>` : ''}
           </div>
         `,
       });
 
       console.log("Welcome email sent successfully:", welcomeEmailResult);
 
-      // Send notification to business email
+      // Send notification email (in test mode, this also goes to test email)
       const notificationEmailResult = await resend.emails.send({
         from: 'onboarding@resend.dev',
-        to: 'source.sensei1205@gmail.com',
+        to: TEST_MODE ? TEST_EMAIL : 'source.sensei1205@gmail.com',
         subject: 'New Waitlist Signup',
         html: `
           <div style="font-family: 'DM Mono', monospace; color: #fe240b;">
@@ -81,6 +90,7 @@ app.post("/waitlist", async (req, res) => {
             <p>A new user has joined the waitlist:</p>
             <p>Email: ${email}</p>
             <p>Time: ${new Date().toLocaleString()}</p>
+            ${TEST_MODE ? '<p style="color: gray;">Running in test mode</p>' : ''}
           </div>
         `,
       });
