@@ -59,7 +59,7 @@ app.post("/waitlist", async (req, res) => {
     // Send notification to business email
     await resend.emails.send({
       from: 'Life Long Club <noreply@lifelong.club>',
-      to: 'source.sensei@proton.me',
+      to: 'source.sensei1205@gmail.com',
       subject: 'New Waitlist Signup',
       html: `
         <div style="font-family: 'DM Mono', monospace; color: #fe240b;">
